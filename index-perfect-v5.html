@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>MEG Roller Maker — Perfect Mesh</title>
+<style>
+:root{--bg:#101116;--panel:#1a1c23;--panel2:#242733;--text:#f7f7fa;--muted:#adb2bf;--line:#353947;--accent:#ef4fa8;--accent2:#b76cff}
+*{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif}
+.app{max-width:1450px;margin:auto;padding:16px} h1{font-size:25px;margin:0 0 4px}.sub{color:var(--muted);margin:0 0 14px}
+.grid{display:grid;grid-template-columns:410px 1fr;gap:14px}.card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:15px}
+label{display:block;font-weight:700;margin:11px 0 6px} input[type=file]{width:100%} input[type=number],select,input[type=range]{width:100%}
+input[type=number],select{padding:10px;border-radius:9px;border:1px solid var(--line);background:var(--panel2);color:white;font-size:15px} input[type=range]{accent-color:var(--accent)}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:9px}.toggle{display:flex;align-items:center;gap:8px;margin-top:11px}.toggle label{margin:0}
+button{width:100%;border:0;border-radius:11px;padding:12px 13px;font-size:15px;font-weight:800;color:#fff;cursor:pointer;background:linear-gradient(135deg,var(--accent),var(--accent2))}
+button.secondary{background:var(--panel2);border:1px solid var(--line)}button:disabled{opacity:.45;cursor:not-allowed}.buttons{display:grid;gap:8px;margin-top:13px}
+#imgPreview{width:100%;aspect-ratio:2/1;background:#fff;border-radius:10px;margin-top:10px;display:block}.viewerWrap{position:relative}#viewer{width:100%;height:77vh;min-height:540px;background:#0b0c11;border-radius:13px;display:block;touch-action:none}
+.small{font-size:12px;color:var(--muted)}.status{color:var(--muted);font-size:13px;margin-top:9px;min-height:21px}.sectionTitle{font-size:12px;letter-spacing:.09em;text-transform:uppercase;color:#d9dcec;margin-top:15px;font-weight:850}
+.badge{display:inline-block;padding:5px 8px;border-radius:999px;background:#292d38;border:1px solid #414655;color:#dfe2ea;font-size:11px;margin-top:8px}.warn{color:#ffc17a}.good{color:#91efad}
+.viewerInfo{position:absolute;left:12px;bottom:12px;padding:7px 9px;border-radius:8px;background:#0009;font-size:12px;color:#d7dae3;pointer-events:none}
+#megLock{position:fixed;inset:0;z-index:999999;display:flex;align-items:center;justify-content:center;padding:24px;background:radial-gradient(circle at 30% 20%,rgba(239,79,168,.20),transparent 36%),radial-gradient(circle at 75% 70%,rgba(183,108,255,.18),transparent 38%),#111217}#megLock.hidden{display:none}
+.meg-lock-card{width:min(92vw,390px);background:#1b1d24;border:1px solid #343845;border-radius:18px;padding:24px;box-shadow:0 22px 80px rgba(0,0,0,.45)}.meg-lock-title{font-size:24px;font-weight:800;margin:0 0 6px}.meg-lock-sub{color:#adb2bf;margin:0 0 20px;font-size:14px}.meg-lock-input{width:100%;padding:13px 14px;border-radius:11px;border:1px solid #414655;background:#242733;color:white;font-size:16px;outline:none}.meg-lock-btn{margin-top:12px}#megLockError{min-height:20px;margin-top:10px;color:#ff9b9b;font-size:13px}html.meg-locked body{overflow:hidden}
+@media(max-width:930px){.grid{grid-template-columns:1fr}#viewer{height:55vh;min-height:420px}}
+</style>
+</head>
+<body>
+<div id="megLock" role="dialog" aria-modal="true"><div class="meg-lock-card"><div class="meg-lock-title">MEG Roller Maker</div><div class="meg-lock-sub">Private access</div><input id="megPassword" class="meg-lock-input" type="password" placeholder="Password" autocomplete="current-password"><button id="megUnlock" class="meg-lock-btn">Open Roller Maker</button><div id="megLockError"></div></div></div>
+<div class="app">
+<h1>MEG Roller Maker — Perfect Mesh</h1>
+<p class="sub">Watertight mesh • real centre hole • crisp detail • print-support staircase only below overhangs</p>
+<div class="grid">
+<div class="card">
+<label>1. Upload black & white image</label><input id="file" type="file" accept="image/png,image/jpeg,image/webp"><div class="small">Default orientation now matches the uploaded image exactly.</div>
+<canvas id="imgPreview" width="760" height="380"></canvas>
+<div class="sectionTitle">Roller</div>
+<div class="row"><div><label>Length mm</label><input id="length" type="number" min="20" max="300" step="1" value="100"></div><div><label>Diameter mm</label><input id="diameter" type="number" min="10" max="150" step="1" value="30"></div></div>
+<div class="row"><div><label>Relief mm</label><input id="relief" type="number" min="0.1" max="4" step="0.05" value="0.8"></div><div><label>Threshold</label><input id="threshold" type="number" min="0" max="255" step="1" value="180"></div></div>
+<div class="sectionTitle">Centre hole</div>
+<div class="toggle"><input id="hollow" type="checkbox" checked><label for="hollow">Hollow roller</label></div>
+<div class="row"><div><label>Hole diameter mm</label><input id="holeDiameter" type="number" min="0" max="145" step="0.1" value="25"></div><div><label>Auto hole</label><select id="autoHole"><option value="1" selected>Diameter − 5 mm</option><option value="0">Manual</option></select></div></div>
+<div id="wallNote" class="small"></div>
+<div class="sectionTitle">Image placement</div>
+<label>Scale <span id="scaleReadout" class="small"></span></label><input id="scale" type="range" min="20" max="220" value="100">
+<label>Position X <span id="posXReadout" class="small"></span></label><input id="posX" type="range" min="-100" max="100" value="0">
+<label>Position Y <span id="posYReadout" class="small"></span></label><input id="posY" type="range" min="-100" max="100" value="0">
+<div class="row"><div><label>Repeat around</label><input id="repeatX" type="number" min="1" max="20" value="1"></div><div><label>Repeat length</label><input id="repeatY" type="number" min="1" max="20" value="1"></div></div>
+<div class="toggle"><input id="mirrorX" type="checkbox"><label for="mirrorX">Mirror horizontally</label></div><div class="toggle"><input id="flipY" type="checkbox"><label for="flipY">Flip vertically</label></div><div class="toggle"><input id="invert" type="checkbox"><label for="invert">Invert black / white</label></div>
+<div class="sectionTitle">Print support staircase</div>
+<div class="toggle"><input id="stairOn" type="checkbox" checked><label for="stairOn">Add support only under protruding starts</label></div>
+<div class="row"><div><label>Support depth mm</label><input id="stairDepth" type="number" min="0.2" max="3" step="0.1" value="0.8"></div><div><label>Step height mm</label><input id="stairStep" type="number" min="0.05" max="0.5" step="0.05" value="0.20"></div></div>
+<div class="small">The visible design stays full-size. Only earlier print layers beneath its lower edge receive smaller radial steps.</div>
+<div class="sectionTitle">Quality</div>
+<div class="row"><div><label>Preview</label><select id="previewQuality"><option value="0.35">Fast • 0.35 mm</option><option value="0.27">High • 0.27 mm</option><option value="0.22" selected>Very high • 0.22 mm</option><option value="0.18">Ultra • 0.18 mm</option></select></div><div><label>STL export</label><select id="exportQuality"><option value="0.20">High • 0.20 mm</option><option value="0.15" selected>Perfect • 0.15 mm</option><option value="0.12">Extreme • 0.12 mm</option><option value="0.10">Maximum • 0.10 mm</option></select></div></div>
+<div class="row"><div><label>Edge mode</label><select id="feather"><option value="0" selected>Crisp</option><option value="4">Micro AA</option><option value="8">Soft AA</option></select></div><div><label>3D preview relief</label><select id="previewBoost"><option value="1">Real height</option><option value="2">×2 visual</option><option value="3" selected>×3 visual</option></select></div></div>
+<div id="detailBadge" class="badge">Upload an image to start</div>
+<div class="buttons"><button id="build" disabled>Generate 3D Roller</button><button id="download" class="secondary" disabled>Download Watertight STL</button></div><div id="status" class="status">Waiting for image.</div>
+</div>
+<div class="card"><div class="viewerWrap"><canvas id="viewer"></canvas><div class="viewerInfo">Drag to rotate • wheel / pinch to zoom</div></div><div class="small" style="margin-top:8px">WebGL depth preview: solid surfaces and the real centre hole are rendered with a depth buffer.</div></div>
+</div></div>
+<script>
+(function(){
+"use strict";
+const PASSWORD_HASH="d34947d6c3fc2b47de6dcbfe34a92ff6a3b5a33b79b46c6352aef9543797f7b8";
+const $=id=>document.getElementById(id);
+async function sha256(s){const b=new TextEncoder().encode(s),d=await crypto.subtle.digest("SHA-256",b);return Array.from(new Uint8Array(d)).map(x=>x.toString(16).padStart(2,"0")).join("")}
+function unlock(){ $("megLock").classList.add("hidden");document.documentElement.classList.remove("meg-locked") }
+document.documentElement.classList.add("meg-locked");
+document.addEventListener("DOMContentLoaded",()=>{if(sessionStorage.getItem("megRollerUnlocked")==="1")unlock();const inp=$("megPassword");async function go(){if(await sha256(inp.value)===PASSWORD_HASH){sessionStorage.setItem("megRollerUnlocked","1");unlock()}else{$("megLockError").textContent="Incorrect password.";inp.select()}}$("megUnlock").onclick=go;inp.onkeydown=e=>{if(e.key==="Enter")go()}});
+
+const pc=$("imgPreview"),pctx=pc.getContext("2d",{willReadFrequently:true});
+let srcCanvas=document.createElement("canvas"),srcCtx=srcCanvas.getContext("2d",{willReadFrequently:true});
+let srcPixels=null,srcW=0,srcH=0,loaded=false,currentMesh=null,currentParams=null;
+function clamp(x,a,b){return Math.max(a,Math.min(b,x))} function smoothstep(a,b,x){let t=clamp((x-a)/((b-a)||1),0,1);return t*t*(3-2*t)}
+function placeholder(){pctx.fillStyle="#fff";pctx.fillRect(0,0,pc.width,pc.height);pctx.fillStyle="#999";pctx.font="24px -apple-system,Arial";pctx.textAlign="center";pctx.textBaseline="middle";pctx.fillText("Your pattern will appear here",pc.width/2,pc.height/2)}placeholder();
+
+function syncHole(){const D=clamp(parseFloat($("diameter").value)||30,10,150);if($("autoHole").value==="1")$("holeDiameter").value=Math.max(0,D-5).toFixed(1);const h=$("hollow").checked?clamp(parseFloat($("holeDiameter").value)||0,0,D-0.4):0;const wall=(D-h)/2;$("wallNote").textContent=$("hollow").checked?`Hole Ø${h.toFixed(2)} mm • radial wall ${wall.toFixed(2)} mm`:`Solid roller`;}
+function readouts(){ $("scaleReadout").textContent=$("scale").value+"%";$("posXReadout").textContent=$("posX").value+"%";$("posYReadout").textContent=$("posY").value+"%";syncHole()} readouts();
+
+$("file").addEventListener("change",e=>{const f=e.target.files?.[0];if(!f)return;$("status").textContent="Loading image…";const r=new FileReader();r.onload=ev=>{const img=new Image();img.onload=()=>{const max=2600,s=Math.min(1,max/Math.max(img.naturalWidth,img.naturalHeight));srcW=Math.max(2,Math.round(img.naturalWidth*s));srcH=Math.max(2,Math.round(img.naturalHeight*s));srcCanvas.width=srcW;srcCanvas.height=srcH;srcCtx.clearRect(0,0,srcW,srcH);srcCtx.drawImage(img,0,0,srcW,srcH);srcPixels=srcCtx.getImageData(0,0,srcW,srcH).data;loaded=true;$("build").disabled=false;update2D();updateStats();$("status").textContent="Image loaded ✓"};img.src=ev.target.result};r.readAsDataURL(f)});
+
+const controls=["length","diameter","relief","threshold","hollow","holeDiameter","autoHole","scale","posX","posY","repeatX","repeatY","mirrorX","flipY","invert","stairOn","stairDepth","stairStep","previewQuality","exportQuality","feather","previewBoost"];
+for(const id of controls){$(id).addEventListener("input",()=>{readouts();if(loaded){update2D();updateStats()}if(id==="previewBoost"&&currentMesh)renderer.draw(currentMesh,getParams())})}
+
+function getParams(){
+ const length=clamp(parseFloat($("length").value)||100,20,300),diameter=clamp(parseFloat($("diameter").value)||30,10,150),circ=Math.PI*diameter;
+ const unwrapAspect=circ/length,srcAspect=(srcW/srcH)||1;let fitW=1,fitH=1;if(srcAspect>=unwrapAspect)fitH=unwrapAspect/srcAspect;else fitW=srcAspect/unwrapAspect;
+ const sc=clamp(parseFloat($("scale").value)||100,20,220)/100,drawW=fitW*sc,drawH=fitH*sc,freeX=Math.max(0,1-drawW),freeY=Math.max(0,1-drawH),px=clamp(parseFloat($("posX").value)||0,-100,100)/100,py=clamp(parseFloat($("posY").value)||0,-100,100)/100;
+ const hollow=$("hollow").checked,hole=hollow?clamp(parseFloat($("holeDiameter").value)||0,0,diameter-0.4):0;
+ return {length,diameter,circ,relief:clamp(parseFloat($("relief").value)||.8,.05,4),threshold:clamp(parseFloat($("threshold").value)||180,0,255),feather:clamp(parseFloat($("feather").value)||0,0,20),repeatX:clamp(parseInt($("repeatX").value)||1,1,20),repeatY:clamp(parseInt($("repeatY").value)||1,1,20),mirrorX:$("mirrorX").checked,flipY:$("flipY").checked,invert:$("invert").checked,drawW,drawH,left:.5-drawW/2+(freeX/2)*px,top:.5-drawH/2+(freeY/2)*py,hollow,holeDiameter:hole,innerR:hole/2,stairOn:$("stairOn").checked,stairDepth:clamp(parseFloat($("stairDepth").value)||.8,.1,3),stairStep:clamp(parseFloat($("stairStep").value)||.2,.05,.5),previewStep:parseFloat($("previewQuality").value)||.22,exportStep:parseFloat($("exportQuality").value)||.15,previewBoost:parseFloat($("previewBoost").value)||1};
+}
+function lum(xx,yy){const i=(yy*srcW+xx)*4;return .2126*srcPixels[i]+.7152*srcPixels[i+1]+.0722*srcPixels[i+2]}
+function bilinear(u,v){u=clamp(u,0,1);v=clamp(v,0,1);const x=u*(srcW-1),y=v*(srcH-1),x0=Math.floor(x),y0=Math.floor(y),x1=Math.min(srcW-1,x0+1),y1=Math.min(srcH-1,y0+1),fx=x-x0,fy=y-y0;const a=lum(x0,y0)*(1-fx)+lum(x1,y0)*fx,b=lum(x0,y1)*(1-fx)+lum(x1,y1)*fx;return a*(1-fy)+b*fy}
+function mainMask(u,v,p){
+ if(!srcPixels||u<p.left||u>p.left+p.drawW||v<p.top||v>p.top+p.drawH)return 0;
+ let x=(u-p.left)/p.drawW,y=(v-p.top)/p.drawH;x=((x*p.repeatX)%1+1)%1;y=((y*p.repeatY)%1+1)%1;if(p.mirrorX)x=1-x;if(p.flipY)y=1-y;
+ const L=bilinear(x,y);let m=p.feather<=0?(L<p.threshold?1:0):1-smoothstep(p.threshold-p.feather,p.threshold+p.feather,L);if(p.invert)m=1-m;return clamp(m,0,1)
+}
+function reliefFraction(u,v,p){
+ const m=mainMask(u,v,p);if(m>.001)return m;if(!p.stairOn)return 0;
+ const n=Math.max(1,Math.round(p.stairDepth/p.stairStep));
+ // v=0 is image/top of physical roller. Printing upright begins at v=1 (bottom) and moves toward v=0.
+ // For a point below the design, look upward (smaller v) and create only partial radial height.
+ for(let k=1;k<=n;k++){
+   const above=v-k*(p.stairDepth/p.length)/n;if(above<0)break;
+   if(mainMask(u,above,p)>.5){
+     const level=(n-k+1)/(n+1); // never reaches full relief outside the original design
+     return level;
+   }
+ }
+ return 0;
+}
+function update2D(){const p=getParams(),W=pc.width,H=pc.height,img=pctx.createImageData(W,H);for(let y=0;y<H;y++){const v=y/(H-1);for(let x=0;x<W;x++){const m=mainMask(x/(W-1),v,p),c=Math.round(255*(1-m)),i=(y*W+x)*4;img.data[i]=img.data[i+1]=img.data[i+2]=c;img.data[i+3]=255}}pctx.putImageData(img,0,0);pctx.strokeStyle="#ef4fa8";pctx.lineWidth=2;pctx.strokeRect(p.left*W,p.top*H,p.drawW*W,p.drawH*H)}
+function updateStats(){const p=getParams(),na=Math.max(96,Math.round(p.circ/p.exportStep)),nz=Math.max(80,Math.round(p.length/p.exportStep)),tris=na*nz*2+(p.hollow?na*6:na*2);$("detailBadge").textContent=`Export ≈ ${na} around × ${nz} long • ${(tris/1e6).toFixed(2)}M triangles • periodic/watertight seam`}
+
+function generateMesh(p,step,maxA,maxZ){
+ const NA=clamp(Math.round(p.circ/step),96,maxA),NZ=clamp(Math.round(p.length/step),80,maxZ),outerCount=(NZ+1)*NA,innerCount=p.hollow?2*NA:2,totalV=outerCount+innerCount;
+ const outerTri=NZ*NA*2,extraTri=p.hollow?NA*6:NA*2,totalTri=outerTri+extraTri;
+ const pos=new Float32Array(totalV*3),idx=new Uint32Array(totalTri*3);let vp=0,ip=0,baseR=p.diameter/2;
+ const setV=(index,x,y,z)=>{let q=index*3;pos[q]=x;pos[q+1]=y;pos[q+2]=z};
+ for(let j=0;j<=NZ;j++){
+   const v=j/NZ,y=p.length/2-v*p.length;
+   for(let i=0;i<NA;i++){
+     const u=i/NA,a=u*Math.PI*2,r=baseR+p.relief*reliefFraction(u,v,p);setV(j*NA+i,r*Math.cos(a),y,r*Math.sin(a));
+   }
+ }
+ const tri=(a,b,c)=>{idx[ip++]=a;idx[ip++]=b;idx[ip++]=c};
+ for(let j=0;j<NZ;j++)for(let i=0;i<NA;i++){const ni=(i+1)%NA,a=j*NA+i,b=j*NA+ni,d=(j+1)*NA+i,c=(j+1)*NA+ni;tri(a,b,d);tri(b,c,d)}
+ if(p.hollow){
+   const topInner=outerCount,bottomInner=outerCount+NA,r=p.innerR;
+   for(let i=0;i<NA;i++){const a=i/NA*Math.PI*2;setV(topInner+i,r*Math.cos(a),p.length/2,r*Math.sin(a));setV(bottomInner+i,r*Math.cos(a),-p.length/2,r*Math.sin(a))}
+   for(let i=0;i<NA;i++){
+     const ni=(i+1)%NA,t0=topInner+i,t1=topInner+ni,b0=bottomInner+i,b1=bottomInner+ni;
+     tri(t0,b0,t1);tri(t1,b0,b1); // inner wall, normals into hole
+     const ot0=i,ot1=ni;tri(ot0,t0,ot1);tri(ot1,t0,t1); // top annulus
+     const ob0=NZ*NA+i,ob1=NZ*NA+ni;tri(ob0,ob1,b0);tri(ob1,b1,b0); // bottom annulus
+   }
+ }else{
+   const topC=outerCount,bottomC=outerCount+1;setV(topC,0,p.length/2,0);setV(bottomC,0,-p.length/2,0);
+   for(let i=0;i<NA;i++){const ni=(i+1)%NA;tri(topC,i,ni);const b0=NZ*NA+i,b1=NZ*NA+ni;tri(bottomC,b1,b0)}
+ }
+ return {positions:pos,indices:idx,NA,NZ,L:p.length,D:p.diameter,innerR:p.innerR,triangles:totalTri};
+}
+function normalsFor(mesh){const p=mesh.positions,id=mesh.indices,n=new Float32Array(p.length);for(let k=0;k<id.length;k+=3){const ia=id[k]*3,ib=id[k+1]*3,ic=id[k+2]*3,ax=p[ia],ay=p[ia+1],az=p[ia+2],ux=p[ib]-ax,uy=p[ib+1]-ay,uz=p[ib+2]-az,vx=p[ic]-ax,vy=p[ic+1]-ay,vz=p[ic+2]-az,nx=uy*vz-uz*vy,ny=uz*vx-ux*vz,nz=ux*vy-uy*vx;for(const q of [ia,ib,ic]){n[q]+=nx;n[q+1]+=ny;n[q+2]+=nz}}for(let i=0;i<n.length;i+=3){const l=Math.hypot(n[i],n[i+1],n[i+2])||1;n[i]/=l;n[i+1]/=l;n[i+2]/=l}return n}
+
+const renderer=(()=>{
+ const canvas=$("viewer"),gl=canvas.getContext("webgl2",{antialias:true,alpha:false});let program=null,vao=null,indexCount=0,rotX=-.30,rotY=.72,zoom=1,meshRef=null,paramsRef=null;
+ if(!gl){$("status").textContent="WebGL2 unavailable. STL export still works.";return {setMesh(){},draw(){}}}
+ const vs=`#version 300 es\nin vec3 aPos;in vec3 aNormal;uniform float uRx,uRy,uScale,uAspect;out float vLight;mat3 ry(float a){float c=cos(a),s=sin(a);return mat3(c,0,-s,0,1,0,s,0,c);}mat3 rx(float a){float c=cos(a),s=sin(a);return mat3(1,0,0,0,c,s,0,-s,c);}void main(){mat3 R=rx(uRx)*ry(uRy);vec3 p=R*aPos;vec3 n=normalize(R*aNormal);float d=.38+.72*max(0.0,dot(n,normalize(vec3(-.45,.60,.75))));vLight=d;gl_Position=vec4(p.x*uScale/uAspect,p.y*uScale,-p.z*uScale*.45,1.0);}`;
+ const fs=`#version 300 es\nprecision highp float;in float vLight;out vec4 outColor;void main(){vec3 c=vec3(.93,.27,.62)*vLight;outColor=vec4(c,1.0);}`;
+ function shader(type,src){const s=gl.createShader(type);gl.shaderSource(s,src);gl.compileShader(s);if(!gl.getShaderParameter(s,gl.COMPILE_STATUS))throw new Error(gl.getShaderInfoLog(s));return s}
+ try{program=gl.createProgram();gl.attachShader(program,shader(gl.VERTEX_SHADER,vs));gl.attachShader(program,shader(gl.FRAGMENT_SHADER,fs));gl.linkProgram(program)}catch(e){$("status").textContent="3D renderer error: "+e.message;return {setMesh(){},draw(){}}}
+ const aPos=gl.getAttribLocation(program,"aPos"),aNormal=gl.getAttribLocation(program,"aNormal"),uRx=gl.getUniformLocation(program,"uRx"),uRy=gl.getUniformLocation(program,"uRy"),uScale=gl.getUniformLocation(program,"uScale"),uAspect=gl.getUniformLocation(program,"uAspect");
+ function resize(){const r=canvas.getBoundingClientRect(),d=Math.min(devicePixelRatio||1,2),w=Math.max(300,Math.round(r.width*d)),h=Math.max(300,Math.round(r.height*d));if(canvas.width!==w||canvas.height!==h){canvas.width=w;canvas.height=h}gl.viewport(0,0,w,h)}
+ function setMesh(mesh,p){meshRef=mesh;paramsRef=p;const normals=normalsFor(mesh);vao=gl.createVertexArray();gl.bindVertexArray(vao);const pb=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,pb);gl.bufferData(gl.ARRAY_BUFFER,mesh.positions,gl.STATIC_DRAW);gl.enableVertexAttribArray(aPos);gl.vertexAttribPointer(aPos,3,gl.FLOAT,false,0,0);const nb=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,nb);gl.bufferData(gl.ARRAY_BUFFER,normals,gl.STATIC_DRAW);gl.enableVertexAttribArray(aNormal);gl.vertexAttribPointer(aNormal,3,gl.FLOAT,false,0,0);const eb=gl.createBuffer();gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,eb);gl.bufferData(gl.ELEMENT_ARRAY_BUFFER,mesh.indices,gl.STATIC_DRAW);indexCount=mesh.indices.length;draw(mesh,p)}
+ function draw(mesh=meshRef,p=paramsRef){resize();gl.clearColor(.045,.048,.065,1);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);if(!vao||!mesh||!p)return;gl.enable(gl.DEPTH_TEST);gl.disable(gl.CULL_FACE);gl.useProgram(program);gl.bindVertexArray(vao);const maxDim=Math.max(p.length,p.diameter+2*p.relief*p.previewBoost),scale=(1.55/maxDim)*zoom;gl.uniform1f(uRx,rotX);gl.uniform1f(uRy,rotY);gl.uniform1f(uScale,scale);gl.uniform1f(uAspect,canvas.width/canvas.height);gl.drawElements(gl.TRIANGLES,indexCount,gl.UNSIGNED_INT,0)}
+ let drag=false,lx=0,ly=0,lastDist=0;canvas.addEventListener("pointerdown",e=>{drag=true;lx=e.clientX;ly=e.clientY;try{canvas.setPointerCapture(e.pointerId)}catch(_){}});canvas.addEventListener("pointermove",e=>{if(!drag)return;rotY+=(e.clientX-lx)*.01;rotX+=(e.clientY-ly)*.01;lx=e.clientX;ly=e.clientY;draw()});canvas.addEventListener("pointerup",()=>drag=false);canvas.addEventListener("wheel",e=>{e.preventDefault();zoom=clamp(zoom*(e.deltaY>0?.92:1.08),.45,3);draw()},{passive:false});window.addEventListener("resize",()=>draw());
+ return {setMesh,draw};
+})();
+
+$("build").onclick=()=>{if(!loaded)return;const p=getParams();currentParams=p;$("status").textContent="Generating watertight preview…";setTimeout(()=>{currentMesh=generateMesh(p,p.previewStep,900,850);renderer.setMesh(currentMesh,p);$("download").disabled=false;$("status").innerHTML=`<span class="good">Ready ✓</span> ${currentMesh.triangles.toLocaleString()} preview triangles • one periodic solid`;},30)};
+function normal(a,b,c){const ux=b[0]-a[0],uy=b[1]-a[1],uz=b[2]-a[2],vx=c[0]-a[0],vy=c[1]-a[1],vz=c[2]-a[2],x=uy*vz-uz*vy,y=uz*vx-ux*vz,z=ux*vy-uy*vx,l=Math.hypot(x,y,z)||1;return[x/l,y/l,z/l]}
+$("download").onclick=()=>{if(!loaded)return;const p=getParams();$("status").textContent="Building high-resolution watertight STL…";setTimeout(()=>{const m=generateMesh(p,p.exportStep,1800,1500),triCount=m.indices.length/3,buf=new ArrayBuffer(84+triCount*50),dv=new DataView(buf);dv.setUint32(80,triCount,true);let off=84;for(let k=0;k<m.indices.length;k+=3){const ia=m.indices[k]*3,ib=m.indices[k+1]*3,ic=m.indices[k+2]*3,a=[m.positions[ia],m.positions[ia+1],m.positions[ia+2]],b=[m.positions[ib],m.positions[ib+1],m.positions[ib+2]],c=[m.positions[ic],m.positions[ic+1],m.positions[ic+2]],n=normal(a,b,c),vals=[...n,...a,...b,...c];for(const x of vals){dv.setFloat32(off,x,true);off+=4}dv.setUint16(off,0,true);off+=2}const blob=new Blob([buf],{type:"model/stl"}),url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download="MEG_Roller_Watertight.stl";document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1500);$("status").innerHTML=`<span class="good">STL created ✓</span> ${triCount.toLocaleString()} triangles • periodic seam closed • hole integrated`;},40)};
+})();
+</script>
+</body>
+</html>
