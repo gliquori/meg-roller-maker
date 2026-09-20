@@ -1,0 +1,447 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>MEG Roller Maker Pro</title>
+<style>
+:root{
+  --bg:#111217;--panel:#1b1d24;--panel2:#242733;--text:#f7f7fa;
+  --muted:#adb2bf;--line:#343845;--accent:#ef4fa8;--accent2:#b76cff;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif}
+.app{max-width:1380px;margin:auto;padding:16px}
+h1{font-size:24px;margin:0 0 4px}
+.sub{color:var(--muted);margin:0 0 14px}
+.notice{background:#30273a;border:1px solid #6b4b82;padding:11px;border-radius:10px;margin:0 0 14px;font-size:13px}
+.grid{display:grid;grid-template-columns:390px 1fr;gap:14px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:15px;padding:15px}
+label{display:block;font-weight:700;margin:12px 0 6px}
+input[type=file]{width:100%}
+input[type=number], select, input[type=range]{width:100%}
+input[type=number], select{padding:10px;border-radius:9px;border:1px solid var(--line);background:var(--panel2);color:white;font-size:15px}
+input[type=range]{accent-color:#ef4fa8}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.toggle{display:flex;align-items:center;gap:8px;margin-top:12px}
+.toggle label{margin:0}
+button{width:100%;border:0;border-radius:10px;padding:12px 13px;font-size:15px;font-weight:800;color:#fff;cursor:pointer;background:linear-gradient(135deg,var(--accent),var(--accent2))}
+button.secondary{background:var(--panel2);border:1px solid var(--line)}
+button:disabled{opacity:.45;cursor:not-allowed}
+.buttons{display:grid;gap:8px;margin-top:13px}
+#imgPreview{width:100%;aspect-ratio:2/1;background:#fff;border-radius:10px;margin-top:10px;display:block}
+#viewer{width:100%;height:74vh;min-height:520px;background:#0d0e12;border-radius:12px;display:block;touch-action:none}
+.status{color:var(--muted);font-size:13px;margin-top:9px;min-height:20px}
+.small{font-size:12px;color:var(--muted)}
+.bad{color:#ff9b9b}
+.good{color:#9ff0b3}
+.sectionTitle{font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:#d9dcec;margin-top:14px;font-weight:800}
+.badge{display:inline-block;padding:4px 8px;border-radius:999px;background:#2b2f3c;border:1px solid #414655;color:#dfe2ea;font-size:11px;margin-top:6px}
+#megLock {position: fixed; inset: 0; z-index: 999999; display:flex; align-items:center; justify-content:center; padding:24px; background: radial-gradient(circle at 30% 20%, rgba(239,79,168,.20), transparent 36%), radial-gradient(circle at 75% 70%, rgba(183,108,255,.18), transparent 38%), #111217;}
+#megLock.hidden { display:none; }
+.meg-lock-card {width:min(92vw,390px); background:#1b1d24; border:1px solid #343845; border-radius:18px; padding:24px; box-shadow:0 22px 80px rgba(0,0,0,.45); color:#f7f7fa;}
+.meg-lock-title {font-size:24px;font-weight:800;margin:0 0 6px}
+.meg-lock-sub {color:#adb2bf;margin:0 0 20px;font-size:14px}
+.meg-lock-input {width:100%;padding:13px 14px;border-radius:11px;border:1px solid #414655;background:#242733;color:white;font-size:16px;outline:none}
+.meg-lock-input:focus {border-color:#ef4fa8;box-shadow:0 0 0 3px rgba(239,79,168,.15)}
+.meg-lock-btn {width:100%;margin-top:12px;border:0;border-radius:11px;padding:13px 14px;font-size:15px;font-weight:800;color:white;background:linear-gradient(135deg,#ef4fa8,#b76cff)}
+#megLockError {min-height:20px;margin-top:10px;color:#ff9b9b;font-size:13px}
+html.meg-locked body {overflow:hidden}
+@media(max-width:920px){.grid{grid-template-columns:1fr} #viewer{height:52vh;min-height:390px}}
+</style>
+</head>
+<body>
+<div id="megLock" aria-modal="true" role="dialog">
+  <div class="meg-lock-card">
+    <div class="meg-lock-title">MEG Roller Maker Pro</div>
+    <div class="meg-lock-sub">Private access</div>
+    <input id="megPassword" class="meg-lock-input" type="password" autocomplete="current-password" placeholder="Password">
+    <button id="megUnlock" class="meg-lock-btn">Open Roller Maker</button>
+    <div id="megLockError"></div>
+    <div class="small">Light password gate for the GitHub Pages version.</div>
+  </div>
+</div>
+
+<div class="app">
+  <h1>MEG Roller Maker Pro</h1>
+  <p class="sub">Higher resolution • aspect ratio preserved • scale & position • smoothing • STL export</p>
+
+  <noscript>
+    <div class="notice bad">JavaScript is not running here. Open this page in Safari or Chrome.</div>
+  </noscript>
+
+  <div class="grid">
+    <div class="card">
+      <label>1. Upload black & white image</label>
+      <input id="file" type="file" accept="image/png,image/jpeg,image/webp">
+      <div class="small">The software now keeps the image aspect ratio. Black is raised by default.</div>
+
+      <canvas id="imgPreview" width="700" height="350"></canvas>
+
+      <div class="sectionTitle">Roller size</div>
+      <div class="row">
+        <div>
+          <label>Length mm</label>
+          <input id="length" type="number" min="20" max="300" step="1" value="100">
+        </div>
+        <div>
+          <label>Diameter mm</label>
+          <input id="diameter" type="number" min="10" max="150" step="1" value="40">
+        </div>
+      </div>
+
+      <div class="row">
+        <div>
+          <label>Relief mm</label>
+          <input id="relief" type="number" min="0.1" max="5" step="0.1" value="0.8">
+        </div>
+        <div>
+          <label>Threshold</label>
+          <input id="threshold" type="number" min="0" max="255" step="1" value="180">
+        </div>
+      </div>
+
+      <div class="sectionTitle">Image placement</div>
+      <label>Scale <span id="scaleReadout" class="small"></span></label>
+      <input id="scale" type="range" min="20" max="220" step="1" value="100">
+
+      <label>Position X <span id="posXReadout" class="small"></span></label>
+      <input id="posX" type="range" min="-100" max="100" step="1" value="0">
+
+      <label>Position Y <span id="posYReadout" class="small"></span></label>
+      <input id="posY" type="range" min="-100" max="100" step="1" value="0">
+
+      <div class="row">
+        <div>
+          <label>Repeat around</label>
+          <input id="repeatX" type="number" min="1" max="20" step="1" value="1">
+        </div>
+        <div>
+          <label>Repeat length</label>
+          <input id="repeatY" type="number" min="1" max="20" step="1" value="1">
+        </div>
+      </div>
+
+      <div class="sectionTitle">Quality</div>
+      <div class="row">
+        <div>
+          <label>STL quality</label>
+          <select id="quality">
+            <option value="0.35">Good • 0.35 mm</option>
+            <option value="0.25" selected>High • 0.25 mm</option>
+            <option value="0.20">Ultra • 0.20 mm</option>
+          </select>
+        </div>
+        <div>
+          <label>Edge smoothing</label>
+          <select id="feather">
+            <option value="0">Off</option>
+            <option value="8">Light</option>
+            <option value="16" selected>Medium</option>
+            <option value="28">Strong</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="toggle">
+        <input id="invert" type="checkbox">
+        <label for="invert">Invert black / white</label>
+      </div>
+      <div class="toggle">
+        <input id="boostPreview" type="checkbox" checked>
+        <label for="boostPreview">Enhance relief preview ×3 <span class="small">(preview only)</span></label>
+      </div>
+
+      <div class="badge" id="detailBadge">No image loaded yet</div>
+
+      <div class="buttons">
+        <button id="build" disabled>Generate 3D Roller</button>
+        <button id="download" class="secondary" disabled>Download STL</button>
+      </div>
+
+      <div id="status" class="status">Upload an image to start.</div>
+    </div>
+
+    <div class="card">
+      <canvas id="viewer" width="900" height="700"></canvas>
+      <div class="small">Drag to rotate • Pinch / wheel to zoom</div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+"use strict";
+
+(function() {
+  const EXPECTED = "d34947d6c3fc2b47de6dcbfe34a92ff6a3b5a33b79b46c6352aef9543797f7b8";
+  const KEY = "megRollerUnlocked";
+  document.documentElement.classList.add("meg-locked");
+  async function sha256(text) {
+    const data = new TextEncoder().encode(text);
+    const digest = await crypto.subtle.digest("SHA-256", data);
+    return Array.from(new Uint8Array(digest)).map(b => b.toString(16).padStart(2, "0")).join("");
+  }
+  function unlock() { const lock = document.getElementById("megLock"); if (lock) lock.classList.add("hidden"); document.documentElement.classList.remove("meg-locked"); }
+  function lock() { const lock = document.getElementById("megLock"); if (lock) lock.classList.remove("hidden"); document.documentElement.classList.add("meg-locked"); }
+  async function tryUnlock() {
+    const input = document.getElementById("megPassword");
+    const error = document.getElementById("megLockError");
+    error.textContent = "";
+    try {
+      const entered = await sha256(input.value);
+      if (entered === EXPECTED) { sessionStorage.setItem(KEY, "1"); unlock(); input.value = ""; }
+      else { error.textContent = "Incorrect password."; input.select(); }
+    } catch(e) { error.textContent = "Could not verify password in this browser."; }
+  }
+  document.addEventListener("DOMContentLoaded", () => {
+    if (sessionStorage.getItem(KEY) === "1") { unlock(); return; }
+    lock();
+    const input = document.getElementById("megPassword");
+    document.getElementById("megUnlock").addEventListener("click", tryUnlock);
+    input.addEventListener("keydown", e => { if (e.key === "Enter") tryUnlock(); });
+    setTimeout(()=>input.focus(), 150);
+  });
+})();
+
+const $ = id => document.getElementById(id);
+const file = $("file"), buildBtn=$("build"), dlBtn=$("download"), status=$("status");
+const pc=$("imgPreview"), pctx=pc.getContext("2d");
+const view=$("viewer"), vctx=view.getContext("2d");
+
+let srcCanvas=document.createElement("canvas");
+let srcCtx=srcCanvas.getContext("2d",{willReadFrequently:true});
+let srcPixels=null, srcW=0, srcH=0, loaded=false;
+let mesh=null;
+let rotX=-0.28, rotY=0.72, zoom=1.0;
+let currentParams=null;
+
+function clamp(v,a,b){ return Math.max(a,Math.min(b,v)); }
+function smoothstep(e0,e1,x){
+  const t=clamp((x-e0)/((e1-e0)||1),0,1);
+  return t*t*(3-2*t);
+}
+function drawPlaceholder(){
+  pctx.fillStyle="#fff"; pctx.fillRect(0,0,pc.width,pc.height);
+  pctx.fillStyle="#999"; pctx.font="26px -apple-system,Arial";
+  pctx.textAlign="center"; pctx.textBaseline="middle";
+  pctx.fillText("Your pattern preview will appear here",pc.width/2,pc.height/2);
+}
+drawPlaceholder();
+function updateReadouts(){
+  $("scaleReadout").textContent = $("scale").value + "%";
+  $("posXReadout").textContent = ($("posX").value > 0 ? "+" : "") + $("posX").value + "%";
+  $("posYReadout").textContent = ($("posY").value > 0 ? "+" : "") + $("posY").value + "%";
+}
+updateReadouts();
+
+file.addEventListener("change", function(){
+  const f=file.files && file.files[0]; if(!f) return;
+  status.textContent="Loading image…";
+  const reader=new FileReader();
+  reader.onerror=()=> status.textContent="Could not read this image.";
+  reader.onload=function(e){
+    const img=new Image();
+    img.onerror=()=> status.textContent="This image format could not be opened.";
+    img.onload=function(){
+      const max=2200;
+      let w=img.naturalWidth, h=img.naturalHeight;
+      const s=Math.min(1,max/Math.max(w,h));
+      w=Math.max(2,Math.round(w*s)); h=Math.max(2,Math.round(h*s));
+      srcCanvas.width=w; srcCanvas.height=h;
+      srcCtx.clearRect(0,0,w,h); srcCtx.drawImage(img,0,0,w,h);
+      try { srcPixels=srcCtx.getImageData(0,0,w,h).data; }
+      catch(err) { status.textContent="Browser blocked image processing. Open the site directly in Safari or Chrome."; return; }
+      srcW=w; srcH=h; loaded=true; buildBtn.disabled=false;
+      updatePatternPreview(); updateDetailBadge();
+      status.textContent="Image loaded ✓ Press Generate 3D Roller.";
+    };
+    img.src=e.target.result;
+  };
+  reader.readAsDataURL(f);
+});
+
+["threshold","repeatX","repeatY","invert","scale","posX","posY","length","diameter","quality","feather"].forEach(id=>{
+  $(id).addEventListener("input", ()=>{ updateReadouts(); if(loaded){ updatePatternPreview(); updateDetailBadge(); } });
+});
+$("boostPreview").addEventListener("input", ()=>render3D());
+
+function getParams(){
+  const length = clamp(parseFloat($("length").value)||100,20,300);
+  const diameter = clamp(parseFloat($("diameter").value)||40,10,150);
+  const circumference = Math.PI * diameter;
+  const unwrapAspect = circumference / length;
+  const srcAspect = srcW/srcH || 1;
+  let fitW = 1, fitH = 1;
+  if (srcAspect >= unwrapAspect) { fitW = 1; fitH = unwrapAspect / srcAspect; }
+  else { fitH = 1; fitW = srcAspect / unwrapAspect; }
+  const scale = clamp(parseFloat($("scale").value)||100,20,220) / 100;
+  const drawW = fitW * scale;
+  const drawH = fitH * scale;
+  const freeX = Math.max(0, 1 - drawW);
+  const freeY = Math.max(0, 1 - drawH);
+  const posX = clamp(parseFloat($("posX").value)||0,-100,100)/100;
+  const posY = clamp(parseFloat($("posY").value)||0,-100,100)/100;
+  const left = 0.5 - drawW/2 + (freeX/2)*posX;
+  const top = 0.5 - drawH/2 + (freeY/2)*posY;
+  return {
+    length, diameter,
+    relief: clamp(parseFloat($("relief").value)||0.8,0.1,5),
+    threshold: clamp(parseFloat($("threshold").value)||180,0,255),
+    feather: clamp(parseFloat($("feather").value)||16,0,80),
+    invert: $("invert").checked,
+    repeatX: clamp(parseInt($("repeatX").value)||1,1,20),
+    repeatY: clamp(parseInt($("repeatY").value)||1,1,20),
+    circumference, unwrapAspect,
+    qualityStep: parseFloat($("quality").value)||0.25,
+    drawW, drawH, left, top
+  };
+}
+
+function sampleGrayBilinear(uu, vv){
+  if (!srcPixels) return 255;
+  const x = clamp(uu*(srcW-1), 0, srcW-1);
+  const y = clamp(vv*(srcH-1), 0, srcH-1);
+  const x0 = Math.floor(x), y0 = Math.floor(y);
+  const x1 = Math.min(srcW-1, x0+1), y1 = Math.min(srcH-1, y0+1);
+  const fx = x-x0, fy = y-y0;
+  function lumAt(xx,yy){ const i=(yy*srcW+xx)*4; return 0.2126*srcPixels[i] + 0.7152*srcPixels[i+1] + 0.0722*srcPixels[i+2]; }
+  const l00 = lumAt(x0,y0), l10 = lumAt(x1,y0), l01 = lumAt(x0,y1), l11 = lumAt(x1,y1);
+  const top = l00*(1-fx) + l10*fx; const bot = l01*(1-fx) + l11*fx;
+  return top*(1-fy) + bot*fy;
+}
+
+function sampleMask(u,v, params){
+  if(!srcPixels) return 0;
+  if (u < params.left || u > params.left + params.drawW || v < params.top || v > params.top + params.drawH) return params.invert ? 1 : 0;
+  let localU = (u - params.left) / params.drawW;
+  let localV = (v - params.top) / params.drawH;
+  localU = ((localU * params.repeatX) % 1 + 1) % 1;
+  localV = ((localV * params.repeatY) % 1 + 1) % 1;
+  const lum = sampleGrayBilinear(localU, 1-localV);
+  let mask;
+  if (params.feather <= 0) mask = lum < params.threshold ? 1 : 0;
+  else mask = 1 - smoothstep(params.threshold - params.feather, params.threshold + params.feather, lum);
+  if (params.invert) mask = 1 - mask;
+  return clamp(mask, 0, 1);
+}
+
+function updatePatternPreview(){
+  const W=pc.width,H=pc.height; const out=pctx.createImageData(W,H); const params = getParams();
+  for(let y=0;y<H;y++){
+    const v=y/(H-1);
+    for(let x=0;x<W;x++){
+      const m=sampleMask(x/(W-1), v, params); const c=Math.round(255*(1-m)); const i=(y*W+x)*4;
+      out.data[i]=c; out.data[i+1]=c; out.data[i+2]=c; out.data[i+3]=255;
+    }
+  }
+  pctx.putImageData(out,0,0);
+  pctx.save(); pctx.strokeStyle="rgba(239,79,168,.9)"; pctx.lineWidth=3; pctx.strokeRect(params.left*W, params.top*H, params.drawW*W, params.drawH*H); pctx.restore();
+}
+
+function updateDetailBadge(){
+  if (!loaded) { $("detailBadge").textContent = "No image loaded yet"; return; }
+  const p = getParams(); const step = p.qualityStep;
+  const stlAround = Math.round(p.circumference / step), stlTall = Math.round(p.length / step);
+  const previewStep = Math.max(step*1.35, 0.28), prevAround = Math.round(p.circumference / previewStep), prevTall = Math.round(p.length / previewStep);
+  $("detailBadge").textContent = `Preview ≈ ${prevAround} × ${prevTall} samples • STL ≈ ${stlAround} × ${stlTall} samples • Ratio preserved`;
+}
+
+function buildMesh(){
+  if(!loaded) return;
+  const params = getParams(); currentParams = params; status.textContent="Generating 3D geometry…";
+  setTimeout(()=>{
+    const L=params.length, D=params.diameter, R=D/2, relief=params.relief;
+    const previewStep = Math.max(params.qualityStep*1.35, 0.28);
+    const NA=clamp(Math.round(params.circumference / previewStep), 160, 720);
+    const NZ=clamp(Math.round(L / previewStep), 100, 600);
+    const vertices=[], faces=[];
+    for(let j=0;j<=NZ;j++){
+      const v=j/NZ; const yy=(v-.5)*L;
+      for(let i=0;i<=NA;i++){
+        const u=i/NA; const a=u*Math.PI*2; const rr=R+relief*sampleMask(u,v,params);
+        vertices.push([rr*Math.cos(a),yy,rr*Math.sin(a)]);
+      }
+    }
+    const row=NA+1;
+    for(let j=0;j<NZ;j++) for(let i=0;i<NA;i++){
+      const a=j*row+i,b=a+1,c=(j+1)*row+i+1,d=(j+1)*row+i; faces.push([a,d,b],[b,d,c]);
+    }
+    const bot=vertices.length; vertices.push([0,-L/2,0]);
+    const top=vertices.length; vertices.push([0,L/2,0]);
+    for(let i=0;i<NA;i++){ faces.push([bot,i+1,i]); const a=NZ*row+i,b=a+1; faces.push([top,a,b]); }
+    mesh={vertices,faces,L,D,relief}; dlBtn.disabled=false; rotX=-0.28; rotY=0.72; zoom=1; render3D();
+    status.textContent=`Ready ✓ Preview built at ~${previewStep.toFixed(2)} mm detail. STL will export at ${params.qualityStep.toFixed(2)} mm detail.`;
+  }, 30);
+}
+buildBtn.addEventListener("click", buildMesh);
+dlBtn.addEventListener("click", downloadBinarySTL);
+
+function resizeView(){ const rect=view.getBoundingClientRect(); const dpr=Math.min(window.devicePixelRatio||1,2); const w=Math.max(320,Math.round(rect.width*dpr)), h=Math.max(300,Math.round(rect.height*dpr)); if(view.width!==w||view.height!==h){ view.width=w; view.height=h; } render3D(); }
+window.addEventListener("resize",resizeView); setTimeout(resizeView,50);
+function projectPoint(p,scale,cx,cy){
+  let x=p[0],y=p[1],z=p[2]; const cyaw=Math.cos(rotY), syaw=Math.sin(rotY); let x1=x*cyaw-z*syaw, z1=x*syaw+z*cyaw; const cp=Math.cos(rotX), sp=Math.sin(rotX); let y2=y*cp-z1*sp, z2=y*sp+z1*cp; const cam=300, q=cam/(cam+z2); return [cx+x1*scale*q, cy-y2*scale*q, z2];
+}
+function render3D(){
+  const W=view.width,H=view.height; const g=vctx.createLinearGradient(0,0,0,H); g.addColorStop(0,"#191b23"); g.addColorStop(1,"#0b0c10"); vctx.fillStyle=g; vctx.fillRect(0,0,W,H);
+  if(!mesh){ vctx.fillStyle="#8e95a4"; vctx.font=`${Math.max(16,W/45)}px -apple-system,Arial`; vctx.textAlign="center"; vctx.textBaseline="middle"; vctx.fillText("3D preview",W/2,H/2-14); vctx.font=`${Math.max(12,W/65)}px -apple-system,Arial`; vctx.fillText("Upload an image and generate the roller",W/2,H/2+22); return; }
+  const maxDim=Math.max(mesh.L,mesh.D+mesh.relief*8), scale=(Math.min(W,H)*0.72/maxDim)*zoom, cx=W/2,cy=H/2, baseR=mesh.D/2, boost=$("boostPreview").checked ? 3 : 1;
+  const displayVerts=mesh.vertices.map(v=>{ const r=Math.hypot(v[0],v[2]); if(r<0.0001) return v; const delta=Math.max(0,r-baseR), rr=baseR+delta*boost; return [v[0]*rr/r,v[1],v[2]*rr/r]; });
+  const projected=displayVerts.map(v=>projectPoint(v,scale,cx,cy));
+  function rotateNormal(nx,ny,nz){ const cyaw=Math.cos(rotY),syaw=Math.sin(rotY); const x1=nx*cyaw-nz*syaw, z1=nx*syaw+nz*cyaw; const cp=Math.cos(rotX),sp=Math.sin(rotX); return [x1,ny*cp-z1*sp,ny*sp+z1*cp]; }
+  const tris=[];
+  for(const f of mesh.faces){
+    const A=projected[f[0]],B=projected[f[1]],C=projected[f[2]], depth=(A[2]+B[2]+C[2])/3;
+    const va=displayVerts[f[0]],vb=displayVerts[f[1]],vc=displayVerts[f[2]]; const ux=vb[0]-va[0],uy=vb[1]-va[1],uz=vb[2]-va[2]; const vx=vc[0]-va[0],vy=vc[1]-va[1],vz=vc[2]-va[2]; let nx=uy*vz-uz*vy,ny=uz*vx-ux*vz,nz=ux*vy-uy*vx; const nl=Math.hypot(nx,ny,nz)||1; nx/=nl; ny/=nl; nz/=nl; const rn=rotateNormal(nx,ny,nz); const directional=Math.max(0,-(rn[0]*.55+rn[1]*.25+rn[2]*.80)); const light=clamp(.42+.72*directional,.34,1.1);
+    const oa=mesh.vertices[f[0]],ob=mesh.vertices[f[1]],oc=mesh.vertices[f[2]]; const avgR=(Math.hypot(oa[0],oa[2])+Math.hypot(ob[0],ob[2])+Math.hypot(oc[0],oc[2]))/3; const raised=avgR>baseR+mesh.relief*.18;
+    tris.push({A,B,C,depth,light,raised});
+  }
+  tris.sort((a,b)=>b.depth-a.depth);
+  for(const t of tris){
+    const base=t.raised ? [246,104,181] : [174,58,121]; const r=Math.round(clamp(base[0]*t.light,0,255)); const gg=Math.round(clamp(base[1]*t.light,0,255)); const b=Math.round(clamp(base[2]*t.light,0,255));
+    vctx.beginPath(); vctx.moveTo(t.A[0],t.A[1]); vctx.lineTo(t.B[0],t.B[1]); vctx.lineTo(t.C[0],t.C[1]); vctx.closePath(); vctx.fillStyle=`rgb(${r},${gg},${b})`; vctx.fill();
+  }
+}
+
+let dragging=false,lastX=0,lastY=0,lastDist=0;
+view.addEventListener("pointerdown",e=>{ dragging=true; lastX=e.clientX; lastY=e.clientY; try{view.setPointerCapture(e.pointerId)}catch(_){} });
+view.addEventListener("pointermove",e=>{ if(!dragging)return; const dx=e.clientX-lastX,dy=e.clientY-lastY; lastX=e.clientX; lastY=e.clientY; rotY+=dx*.01; rotX+=dy*.01; render3D(); });
+view.addEventListener("pointerup",()=>dragging=false); view.addEventListener("pointercancel",()=>dragging=false);
+view.addEventListener("wheel",e=>{ e.preventDefault(); zoom=clamp(zoom*(e.deltaY>0?.92:1.08),.4,3); render3D(); },{passive:false});
+view.addEventListener("touchstart",e=>{ if(e.touches.length===2){ lastDist=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY); } },{passive:true});
+view.addEventListener("touchmove",e=>{ if(e.touches.length===2){ const d=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY); if(lastDist){ zoom=clamp(zoom*(d/lastDist),.4,3); render3D(); } lastDist=d; } },{passive:true});
+
+function buildExportMesh(params){
+  const L=params.length, D=params.diameter, R=D/2, relief=params.relief, step=params.qualityStep;
+  const NA=clamp(Math.round(params.circumference / step), 160, 960), NZ=clamp(Math.round(L / step), 100, 900), row=NA+1;
+  const vertices=new Array((NZ+1)*row + 2);
+  for(let j=0;j<=NZ;j++){
+    const v=j/NZ, yy=(v-.5)*L;
+    for(let i=0;i<=NA;i++){
+      const u=i/NA, a=u*Math.PI*2, rr=R+relief*sampleMask(u,v,params); vertices[j*row+i] = [rr*Math.cos(a),yy,rr*Math.sin(a)];
+    }
+  }
+  const botIndex = vertices.length-2, topIndex = vertices.length-1; vertices[botIndex] = [0,-L/2,0]; vertices[topIndex] = [0,L/2,0];
+  return {vertices, NA, NZ, row, botIndex, topIndex};
+}
+function computeNormal(a,b,c){ const ux=b[0]-a[0], uy=b[1]-a[1], uz=b[2]-a[2], vx=c[0]-a[0], vy=c[1]-a[1], vz=c[2]-a[2]; let x=uy*vz-uz*vy, y=uz*vx-ux*vz, z=ux*vy-uy*vx; const l=Math.hypot(x,y,z)||1; return [x/l,y/l,z/l]; }
+function writeTri(view, offset, a,b,c){ const n = computeNormal(a,b,c); const vals = [n[0],n[1],n[2], a[0],a[1],a[2], b[0],b[1],b[2], c[0],c[1],c[2]]; for(let i=0;i<vals.length;i++, offset+=4) view.setFloat32(offset, vals[i], true); view.setUint16(offset, 0, true); offset += 2; return offset; }
+function downloadBinarySTL(){
+  if(!loaded) return; const params = currentParams || getParams(); status.textContent="Creating STL… this may take a moment on phone.";
+  setTimeout(()=>{
+    const g = buildExportMesh(params); const triCount = (g.NA * g.NZ * 2) + (g.NA * 2); const buffer = new ArrayBuffer(84 + triCount*50); const dv = new DataView(buffer); dv.setUint32(80, triCount, true); let off = 84;
+    for(let j=0;j<g.NZ;j++) for(let i=0;i<g.NA;i++){
+      const a = g.vertices[j*g.row+i], b = g.vertices[(j+1)*g.row+i], c = g.vertices[j*g.row+i+1], d = g.vertices[(j+1)*g.row+i+1]; off = writeTri(dv, off, a,b,c); off = writeTri(dv, off, c,b,d);
+    }
+    for(let i=0;i<g.NA;i++){
+      const a = g.vertices[i], b = g.vertices[i+1]; off = writeTri(dv, off, g.vertices[g.botIndex], b, a);
+      const ta = g.vertices[g.NZ*g.row+i], tb = g.vertices[g.NZ*g.row+i+1]; off = writeTri(dv, off, g.vertices[g.topIndex], ta, tb);
+    }
+    const blob = new Blob([buffer], {type:"model/stl"}); const url = URL.createObjectURL(blob); const a = document.createElement("a"); a.href = url; a.download = "MEG_Roller.stl"; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(url), 1500);
+    status.textContent = `STL created ✓ Export detail ${params.qualityStep.toFixed(2)} mm`;
+  }, 40);
+}
+})();
+</script>
+</body>
+</html>
